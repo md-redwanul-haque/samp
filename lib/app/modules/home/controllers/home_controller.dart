@@ -1,5 +1,8 @@
+import 'dart:math';
+
 import 'package:get/get.dart';
 import 'package:flutter/material.dart';
+import 'package:image_picker/image_picker.dart';
 import '../db/db_provider.dart';
 import '../model/task_model.dart';
 
@@ -11,9 +14,42 @@ class HomeController extends GetxController {
   RxString date = ''.obs; // Store the selected date as a string
   RxList<String> imagePaths = <String>[].obs; // List to store image paths
   final count = 0.obs;
-  RxList<TodoModel> todoList = <TodoModel>[].obs; // Updated to match TodoModel
+  RxList<TodoModel> todoList = <TodoModel>[].obs;
+  Random id_data = Random();
+  List<String> imagePathsS = [];
+  var selectedDate = DateTime.now().obs;
 
-  // Load all todos from the database
+
+
+
+
+  Future<void> pickImagesFromGallery() async {
+    final pickedFiles = await ImagePicker().pickMultiImage();
+    if (pickedFiles != null) {
+      imagePathsS.addAll(pickedFiles.map((file) => file.path).toList());
+    }
+  }
+
+  Future<void> pickImageFromCamera() async {
+    final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
+    if (pickedFile != null) {
+      imagePathsS.add(pickedFile.path);
+    }
+  }
+
+  Future<void> selectDate(BuildContext context) async {
+    final DateTime? picked = await showDatePicker(
+      context: context,
+      initialDate: selectedDate.value,
+      firstDate: DateTime(2000),
+      lastDate: DateTime(2101),
+    );
+    if (picked != null && picked != selectedDate) {
+      selectedDate.value = picked;
+    }
+  }
+
+
   void checks() async {
     todoList.value = await DataBaseHelper.dbInstance.getTodos();
   }
