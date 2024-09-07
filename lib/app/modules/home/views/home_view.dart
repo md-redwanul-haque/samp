@@ -1,8 +1,6 @@
 import 'dart:io';
-import 'dart:math';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
-import 'package:image_picker/image_picker.dart';
 import '../controllers/home_controller.dart';
 import '../db/db_provider.dart';
 import '../model/task_model.dart';
@@ -10,35 +8,7 @@ import '../model/task_model.dart';
 
 class HomeView extends GetView<HomeController> {
   HomeView({Key? key}) : super(key: key);
-  Random id = Random();
-  List<String> imagePaths = [];
-  var selectedDate = DateTime.now().obs;
 
-  Future<void> pickImagesFromGallery() async {
-    final pickedFiles = await ImagePicker().pickMultiImage();
-    if (pickedFiles != null) {
-      imagePaths.addAll(pickedFiles.map((file) => file.path).toList());
-    }
-  }
-
-  Future<void> pickImageFromCamera() async {
-    final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
-    if (pickedFile != null) {
-      imagePaths.add(pickedFile.path);
-    }
-  }
-
-  Future<void> _selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
-      context: context,
-      initialDate: selectedDate.value,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
-    );
-    if (picked != null && picked != selectedDate) {
-      selectedDate.value = picked;
-    }
-  }
 
   @override
   Widget build(BuildContext context) {
@@ -79,11 +49,11 @@ class HomeView extends GetView<HomeController> {
                 child: Row(
                   children: [
                     ElevatedButton(
-                      onPressed: () => _selectDate(context),
+                      onPressed: () => controller.selectDate(context),
                       child: Text("Select Date"),
                     ),
                     SizedBox(width: 10),
-                    Obx(()=>Text("${selectedDate.value.toLocal()}".split(' ')[0]))
+                    Obx(()=>Text("${controller.selectedDate.value.toLocal()}".split(' ')[0]))
                   ],
                 ),
               ),
@@ -97,11 +67,11 @@ class HomeView extends GetView<HomeController> {
 
                     children: [
                       ElevatedButton(
-                        onPressed: pickImagesFromGallery,
+                        onPressed: controller.pickImagesFromGallery,
                         child: Text('Gallery'),
                       ),
                       ElevatedButton(
-                        onPressed: pickImageFromCamera,
+                        onPressed: controller.pickImageFromCamera,
                         child: Text(' Camera'),
                       ),
                     ],
@@ -114,12 +84,12 @@ class HomeView extends GetView<HomeController> {
                 height: 100,
                 child: ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: imagePaths.length,
+                  itemCount: controller.imagePathsS.length,
                   itemBuilder: (context, index) {
                     return Padding(
                       padding: const EdgeInsets.all(4.0),
                       child: Image.file(
-                        File(imagePaths[index]),
+                        File(controller.imagePathsS[index]),
                         width: 100,
                         height: 100,
                         fit: BoxFit.cover,
@@ -135,11 +105,11 @@ class HomeView extends GetView<HomeController> {
                   ElevatedButton(
                     onPressed: () async {
                       var todo = TodoModel(
-                        id: id.nextInt(100000),
+                        id: controller.id_data.nextInt(100000),
                         title: controller.title.value.text,
                         description: controller.description.value.text,
-                        date: selectedDate.value.toIso8601String(),
-                        imagePaths: imagePaths,
+                        date: controller.selectedDate.value.toIso8601String(),
+                        imagePaths: controller.imagePathsS,
                       );
 
                       await DataBaseHelper.dbInstance.addTodos(todo);
@@ -147,7 +117,7 @@ class HomeView extends GetView<HomeController> {
 
                       controller.title.value.clear();
                       controller.description.value.clear();
-                      imagePaths.clear();
+                      controller.imagePathsS.clear();
                     },
                     child: Text('Add'),
                   ),
@@ -157,8 +127,8 @@ class HomeView extends GetView<HomeController> {
                         id: controller.id.value,
                         title: controller.title.value.text,
                         description: controller.description.value.text,
-                        date: selectedDate.value.toIso8601String(),
-                        imagePaths: imagePaths,
+                        date: controller.selectedDate.value.toIso8601String(),
+                        imagePaths: controller.imagePathsS,
                       );
 
                       await DataBaseHelper.dbInstance.updateTodo(todo);
@@ -166,7 +136,7 @@ class HomeView extends GetView<HomeController> {
 
                       controller.title.value.clear();
                       controller.description.value.clear();
-                      imagePaths.clear();
+                      controller.imagePathsS.clear();
                     },
                     child: Text("Update"),
                   ),
@@ -185,7 +155,7 @@ class HomeView extends GetView<HomeController> {
                           controller.title.value.text = todo.title ?? '';
                           controller.description.value.text = todo.description ?? '';
                           controller.id.value = todo.id!;
-                          imagePaths = todo.imagePaths ?? [];
+                          controller.imagePathsS = todo.imagePaths ?? [];
                         },
                       ),
                       title: Text(todo.title ?? ''),
