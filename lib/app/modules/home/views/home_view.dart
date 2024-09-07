@@ -12,7 +12,7 @@ class HomeView extends GetView<HomeController> {
   HomeView({Key? key}) : super(key: key);
   Random id = Random();
   List<String> imagePaths = []; // List to store image paths
-  DateTime selectedDate = DateTime.now(); // Store the selected date
+  var selectedDate = DateTime.now().obs; // Store the selected date
 
   Future<void> pickImagesFromGallery() async {
     final pickedFiles = await ImagePicker().pickMultiImage();
@@ -31,12 +31,12 @@ class HomeView extends GetView<HomeController> {
   Future<void> _selectDate(BuildContext context) async {
     final DateTime? picked = await showDatePicker(
       context: context,
-      initialDate: selectedDate,
+      initialDate: selectedDate.value,
       firstDate: DateTime(2000),
       lastDate: DateTime(2101),
     );
     if (picked != null && picked != selectedDate) {
-      selectedDate = picked;
+      selectedDate.value = picked;
     }
   }
 
@@ -83,7 +83,7 @@ class HomeView extends GetView<HomeController> {
                       child: Text("Select Date"),
                     ),
                     SizedBox(width: 10),
-                    Text("${selectedDate.toLocal()}".split(' ')[0]),
+                    Obx(()=>Text("${selectedDate.value.toLocal()}".split(' ')[0]))
                   ],
                 ),
               ),
@@ -138,7 +138,7 @@ class HomeView extends GetView<HomeController> {
                         id: id.nextInt(100000),
                         title: controller.title.value.text,
                         description: controller.description.value.text,
-                        date: selectedDate.toIso8601String(),
+                        date: selectedDate.value.toIso8601String(),
                         imagePaths: imagePaths,
                       );
 
@@ -157,7 +157,7 @@ class HomeView extends GetView<HomeController> {
                         id: controller.id.value,
                         title: controller.title.value.text,
                         description: controller.description.value.text,
-                        date: selectedDate.toIso8601String(),
+                        date: selectedDate.value.toIso8601String(),
                         imagePaths: imagePaths,
                       );
 
@@ -175,7 +175,7 @@ class HomeView extends GetView<HomeController> {
 
               Expanded(
                 child: Obx(() => controller.count.value==0?ListView.builder(
-                  itemCount: controller.todoList.value.length,
+                  itemCount: controller.todoList.length,
                   itemBuilder: (BuildContext context, int index) {
                     var todo = controller.todoList[index];
                     return  ListTile(
