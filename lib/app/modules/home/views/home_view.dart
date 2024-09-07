@@ -11,8 +11,8 @@ import '../model/task_model.dart';
 class HomeView extends GetView<HomeController> {
   HomeView({Key? key}) : super(key: key);
   Random id = Random();
-  List<String> imagePaths = []; // List to store image paths
-  var selectedDate = DateTime.now().obs; // Store the selected date
+  List<String> imagePaths = [];
+  var selectedDate = DateTime.now().obs;
 
   Future<void> pickImagesFromGallery() async {
     final pickedFiles = await ImagePicker().pickMultiImage();
