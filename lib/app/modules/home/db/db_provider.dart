@@ -1,81 +1,86 @@
 import 'dart:async';
 import 'dart:io';
-
 import 'package:path_provider/path_provider.dart';
 import 'package:sqflite/sqflite.dart';
 import 'package:path/path.dart';
-
 import '../controllers/home_controller.dart';
 import '../model/task_model.dart';
 
-class DataBaseHelper{
-  HomeController controller =HomeController();
+
+class DataBaseHelper {
+  HomeController controller = HomeController();
   DataBaseHelper._privateConstructor();
 
   static final DataBaseHelper dbInstance = DataBaseHelper._privateConstructor();
 
   static Database? _database;
 
-  Future<Database> get getDatabase async =>_database ??=await _initDatabase();
+  Future<Database> get getDatabase async => _database ??= await _initDatabase();
 
-  Future<Database> _initDatabase() async{
-
+  Future<Database> _initDatabase() async {
     Directory documentDirectory = await getApplicationSupportDirectory();
     String path = join(documentDirectory.path, 'myTodo.db');
     return await openDatabase(
       path,
-      version: 1,
+      version: 2,
       onCreate: _onCreate,
+      onUpgrade: _onUpgrade,
     );
-
   }
 
   FutureOr<void> _onCreate(Database db, int version) {
     db.execute(
         """
-        CREATE TABLE todos(
-          id INTEGER PRIMARY KEY,
-          title TEXT,
-          description TEXT
-          )
-          
-          """
+      CREATE TABLE todos(
+        id INTEGER PRIMARY KEY,
+        title TEXT,
+        description TEXT,
+        date TEXT,
+        imagePaths TEXT
+      )
+      """
     );
   }
-  Future<int> addTodos(todoModel modelObj) async{
+
+  FutureOr<void> _onUpgrade(Database db, int oldVersion, int newVersion) {
+    if (oldVersion < 2) {
+      db.execute("ALTER TABLE todos ADD COLUMN date TEXT;");
+      db.execute("ALTER TABLE todos ADD COLUMN imagePaths TEXT;");
+    }
+  }
+
+
+  Future<int> addTodos(TodoModel modelObj) async {
     Database db = await dbInstance.getDatabase;
     return await db.insert("todos", modelObj.toJson());
   }
 
-  Future<List<todoModel>> getTodos()async{
-    Database db =await dbInstance.getDatabase;
-    var todos  = await db.query('todos',orderBy: 'id');
 
-    print('mytodo------${todos}');
+  Future<List<TodoModel>> getTodos() async {
+    Database db = await dbInstance.getDatabase;
+    var todos = await db.query('todos', orderBy: 'id');
 
-    List<todoModel> todoList= todos.isNotEmpty?todos.map((modelObj) => todoModel.fromJson(modelObj)).toList():[];
+    List<TodoModel> todoList = todos.isNotEmpty
+        ? todos.map((modelObj) => TodoModel.fromJson(modelObj)).toList()
+        : [];
 
     return todoList;
   }
 
-  Future deleteTodo(int id) async{
-    Database db =await dbInstance.getDatabase;
-    return await db.delete('todos',where: 'id=?',whereArgs: [id]);
-
+  // Delete
+  Future deleteTodo(int id) async {
+    Database db = await dbInstance.getDatabase;
+    return await db.delete('todos', where: 'id = ?', whereArgs: [id]);
   }
 
-  Future updateTodo(todoModel todo) async{
-    Database db =await dbInstance.getDatabase;
+  // Update
+  Future updateTodo(TodoModel todo) async {
+    Database db = await dbInstance.getDatabase;
     return await db.update(
       'todos',
       todo.toJson(),
-      where: 'id=?',
-      whereArgs: [todo.id]
-
+      where: 'id = ?',
+      whereArgs: [todo.id],
     );
-
-
   }
-
 }
-
