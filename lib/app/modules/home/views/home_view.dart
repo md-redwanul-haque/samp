@@ -1,31 +1,26 @@
 import 'dart:io';
 import 'package:flutter/material.dart';
 import 'package:get/get.dart';
+import '../../../data/Utils/memory_management/memory_management.dart';
+import '../../../data/Utils/memory_management/shared_pref_keys.dart';
 import '../controllers/home_controller.dart';
-import '../db/db_provider.dart';
-import '../model/task_model.dart';
-
 
 class HomeView extends GetView<HomeController> {
   HomeView({Key? key}) : super(key: key);
-
+  RxBool edit = false.obs;
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      appBar: AppBar(
-        title: Text('LocaldatabaseView'),
-        centerTitle: true,
-      ),
+      appBar: AppBar(title: Text('My TODO'),centerTitle: true,),
       body: SingleChildScrollView(
         physics: ScrollPhysics(),
         child: Container(
-          height: 800,
+          height: Get.height *0.9,
           child: Column(
+            crossAxisAlignment: CrossAxisAlignment.start,
             children: [
               SizedBox(height: 30),
-
-              // Title Input
               Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: TextFormField(
@@ -33,8 +28,6 @@ class HomeView extends GetView<HomeController> {
                   decoration: InputDecoration(hintText: 'Title'),
                 ),
               ),
-
-              // Description Input
               Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: TextFormField(
@@ -42,130 +35,100 @@ class HomeView extends GetView<HomeController> {
                   decoration: InputDecoration(hintText: 'Description'),
                 ),
               ),
-
-              // Date Picker
               Padding(
                 padding: const EdgeInsets.all(12.0),
                 child: Row(
                   children: [
                     ElevatedButton(
-                      onPressed: () => controller.selectDate(context),
-                      child: Text("Select Date"),
+                      onPressed: () => controller.selectTime(context),
+                      child: Text("Select Time"),
                     ),
                     SizedBox(width: 10),
-                    Obx(()=>Text("${controller.selectedDate.value.toLocal()}".split(' ')[0]))
+                    Obx(() => Text(controller.time.value)),
                   ],
                 ),
               ),
-
-              // Image Picker Buttons
+              Padding(
+                padding: const EdgeInsets.symmetric(horizontal: 12.0),
+                child: Text("Choose Image:"),
+              ),
               Padding(
                 padding: const EdgeInsets.all(12.0),
-                child: SingleChildScrollView(
-                  child: Row(
-                    mainAxisAlignment: MainAxisAlignment.spaceAround,
-
-                    children: [
-                      ElevatedButton(
-                        onPressed: controller.pickImagesFromGallery,
-                        child: Text('Gallery'),
-                      ),
-                      ElevatedButton(
-                        onPressed: controller.pickImageFromCamera,
-                        child: Text(' Camera'),
-                      ),
-                    ],
-                  ),
+                child: Column(
+                  crossAxisAlignment: CrossAxisAlignment.start,
+                  children: [
+                    ElevatedButton(
+                      onPressed: controller.pickImagesFromGallery,
+                      child: Text('Gallery'),
+                    ),
+                    ElevatedButton(
+                      onPressed: controller.pickImageFromCamera,
+                      child: Text('Camera'),
+                    ),
+                  ],
                 ),
               ),
-
-              // Display selected images
               SizedBox(
                 height: 100,
-                child: ListView.builder(
+                child: Obx(() => ListView.builder(
                   scrollDirection: Axis.horizontal,
-                  itemCount: controller.imagePathsS.length,
+                  itemCount: controller.imagePaths.length,
                   itemBuilder: (context, index) {
                     return Padding(
                       padding: const EdgeInsets.all(4.0),
                       child: Image.file(
-                        File(controller.imagePathsS[index]),
+                        File(controller.imagePaths[index]),
                         width: 100,
                         height: 100,
                         fit: BoxFit.cover,
                       ),
                     );
                   },
-                ),
+                )),
               ),
-
               Row(
                 mainAxisAlignment: MainAxisAlignment.spaceAround,
                 children: [
+
                   ElevatedButton(
-                    onPressed: () async {
-                      var todo = TodoModel(
-                        id: controller.id_data.nextInt(100000),
-                        title: controller.title.value.text,
-                        description: controller.description.value.text,
-                        date: controller.selectedDate.value.toIso8601String(),
-                        imagePaths: controller.imagePathsS,
-                      );
+                    onPressed: () {
+                      controller.addTodo();
+                      if(edit.value ==true){
+                        edit.value = false;
 
-                      await DataBaseHelper.dbInstance.addTodos(todo);
-                      controller.todoList.value = await DataBaseHelper.dbInstance.getTodos();
+                      }
+                      else{
+                        edit.value = true;
+                      }
 
-                      controller.title.value.clear();
-                      controller.description.value.clear();
-                      controller.imagePathsS.clear();
-                    },
-                    child: Text('Add'),
-                  ),
-                  ElevatedButton(
-                    onPressed: () async {
-                      var todo = TodoModel(
-                        id: controller.id.value,
-                        title: controller.title.value.text,
-                        description: controller.description.value.text,
-                        date: controller.selectedDate.value.toIso8601String(),
-                        imagePaths: controller.imagePathsS,
-                      );
-
-                      await DataBaseHelper.dbInstance.updateTodo(todo);
-                      controller.todoList.value = await DataBaseHelper.dbInstance.getTodos();
-
-                      controller.title.value.clear();
-                      controller.description.value.clear();
-                      controller.imagePathsS.clear();
-                    },
-                    child: Text("Update"),
+                      },
+                    child: Obx(()=>edit.value== false ? Text('Add'):Text("Update")),
                   ),
                 ],
               ),
-
               Expanded(
-                child: Obx(() => controller.count.value==0?ListView.builder(
+                child: Obx(() => ListView.builder(
                   itemCount: controller.todoList.length,
                   itemBuilder: (BuildContext context, int index) {
                     var todo = controller.todoList[index];
-                    return  ListTile(
+                    return ListTile(
                       leading: IconButton(
                         icon: Icon(Icons.edit),
                         onPressed: () {
-                          controller.title.value.text = todo.title ?? '';
-                          controller.description.value.text = todo.description ?? '';
-                          controller.id.value = todo.id!;
-                          controller.imagePathsS = todo.imagePaths ?? [];
+                          controller.setTodoForEditing(todo);
+                          if(edit.value==false){
+                            edit.value= true;
+                          }else{
+                            edit.value = false;
+                          }
                         },
                       ),
                       title: Text(todo.title ?? ''),
                       subtitle: Column(
                         crossAxisAlignment: CrossAxisAlignment.start,
                         children: [
-                          Text(controller.count.value.toString()),
                           Text(todo.description ?? ''),
-                          Text(todo.date ?? ''),
-                          // Display saved images for each todo
+                          Text("Time: ${todo.time ?? ''}"),
                           SizedBox(
                             height: 50,
                             child: ListView.builder(
@@ -187,15 +150,12 @@ class HomeView extends GetView<HomeController> {
                         ],
                       ),
                       trailing: IconButton(
-                        onPressed: () async {
-                          await DataBaseHelper.dbInstance.deleteTodo(todo.id!);
-                          controller.todoList.removeAt(index);
-                        },
+                        onPressed: () => controller.deleteTodoById(todo.id!),
                         icon: Icon(Icons.delete),
                       ),
                     );
                   },
-                ):Container()),
+                )),
               ),
             ],
           ),

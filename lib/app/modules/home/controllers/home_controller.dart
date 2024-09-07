@@ -11,13 +11,16 @@ class HomeController extends GetxController {
   var title = TextEditingController().obs;
   var description = TextEditingController().obs;
   RxInt id = 0.obs;
-  RxString date = ''.obs; // Store the selected date as a string
-  RxList<String> imagePaths = <String>[].obs; // List to store image paths
-  final count = 0.obs;
+  RxString time = ''.obs;
+  RxList<String> imagePaths = <String>[].obs;
   RxList<TodoModel> todoList = <TodoModel>[].obs;
-  Random id_data = Random();
-  List<String> imagePathsS = [];
-  var selectedDate = DateTime.now().obs;
+  Random ids = Random();
+  TimeOfDay selectedTimes = TimeOfDay.now();
+
+
+
+
+
 
 
 
@@ -26,94 +29,83 @@ class HomeController extends GetxController {
   Future<void> pickImagesFromGallery() async {
     final pickedFiles = await ImagePicker().pickMultiImage();
     if (pickedFiles != null) {
-      imagePathsS.addAll(pickedFiles.map((file) => file.path).toList());
+      imagePaths.addAll(pickedFiles.map((file) => file.path).toList());
     }
   }
 
   Future<void> pickImageFromCamera() async {
     final pickedFile = await ImagePicker().pickImage(source: ImageSource.camera);
     if (pickedFile != null) {
-      imagePathsS.add(pickedFile.path);
+      imagePaths.add(pickedFile.path);
     }
   }
 
-  Future<void> selectDate(BuildContext context) async {
-    final DateTime? picked = await showDatePicker(
+  Future<void> selectTime(BuildContext context) async {
+    final TimeOfDay? picked = await showTimePicker(
       context: context,
-      initialDate: selectedDate.value,
-      firstDate: DateTime(2000),
-      lastDate: DateTime(2101),
+      initialTime: selectedTimes,
     );
-    if (picked != null && picked != selectedDate) {
-      selectedDate.value = picked;
+    if (picked != null && picked != selectedTimes) {
+      selectedTimes = picked;
+     time.value = picked.format(context);
     }
   }
 
 
-  void checks() async {
-    todoList.value = await DataBaseHelper.dbInstance.getTodos();
-  }
+
 
   @override
   void onInit() {
-    checks(); // Load todos when the controller is initialized
+    fetchTodos();
     super.onInit();
   }
 
-  @override
-  void onClose() {
-    title.value.dispose();
-    description.value.dispose();
-    super.onClose();
+
+  void fetchTodos() async {
+    todoList.value = await DataBaseHelper.dbInstance.getTodos();
   }
 
-  // Add a new todo
+
   Future<void> addTodo() async {
     var todo = TodoModel(
-      id: id.value == 0 ? null : id.value, // If ID is 0, let the DB auto-generate
+      id: id.value == 0 ? null : id.value,
       title: title.value.text,
       description: description.value.text,
-      date: date.value,
+      time: time.value,
       imagePaths: imagePaths,
     );
 
     if (id.value == 0) {
-      // Insert new todo
       await DataBaseHelper.dbInstance.addTodos(todo);
     } else {
-      // Update existing todo
       await DataBaseHelper.dbInstance.updateTodo(todo);
     }
 
-    // Clear the input fields and refresh the todo list
     clearInputs();
-    checks();
+    fetchTodos();
   }
 
-  // Clear the input fields and reset the state
+
   void clearInputs() {
     title.value.clear();
     description.value.clear();
-    date.value = '';
+    time.value = '';
     imagePaths.clear();
-    id.value = 0; // Reset ID for adding new todos
+    id.value = 0;
   }
 
-  // Delete a todo by ID
-  Future<void> deleteTodoById(int todoId) async {
-    await DataBaseHelper.dbInstance.deleteTodo(todoId);
-    checks(); // Refresh the list after deletion
-  }
 
-  // Set the todo data when editing
   void setTodoForEditing(TodoModel todo) {
     title.value.text = todo.title ?? '';
     description.value.text = todo.description ?? '';
-    date.value = todo.date ?? '';
+    time.value = todo.time ?? '';
     imagePaths.value = todo.imagePaths ?? [];
     id.value = todo.id!;
   }
 
-  // Increment method, not used but can be for other purposes
-  void increment() => count.value++;
+
+  Future<void> deleteTodoById(int todoId) async {
+    await DataBaseHelper.dbInstance.deleteTodo(todoId);
+    fetchTodos();
+  }
 }
